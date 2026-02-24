@@ -67,15 +67,19 @@ export default function AppNavigator() {
                     headerShown: false,
                     contentStyle: { backgroundColor: theme.colors.background },
                 }}
-                initialRouteName={hasSeenOnboarding ? "MainTabs" : "Onboarding"}
             >
-                <Stack.Screen name="Onboarding" component={OnboardingScreen} />
-                <Stack.Screen name="MainTabs" component={MainTabs} />
-                <Stack.Screen
-                    name="SessionFlow"
-                    component={SessionFlowScreen}
-                    options={{ presentation: 'fullScreenModal' }}
-                />
+                {!hasSeenOnboarding ? (
+                    <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+                ) : (
+                    <>
+                        <Stack.Screen name="MainTabs" component={MainTabs} />
+                        <Stack.Screen
+                            name="SessionFlow"
+                            component={SessionFlowScreen}
+                            options={{ presentation: 'fullScreenModal' }}
+                        />
+                    </>
+                )}
             </Stack.Navigator>
         </NavigationContainer>
     );

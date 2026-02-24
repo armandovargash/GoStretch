@@ -86,6 +86,7 @@ export function AppButton({
         getPadding(),
         getBorderStyles(),
         { backgroundColor: getBackgroundColor() },
+        variant === 'primary' && !disabled && theme.layout.shadows.subtle,
         style
     ];
 

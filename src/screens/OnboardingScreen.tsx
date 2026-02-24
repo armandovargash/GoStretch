@@ -1,10 +1,12 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Image, Dimensions } from 'react-native';
 import { useAppStore } from '../store/useAppStore';
 import { theme } from '../theme';
 import { useThemeColors } from '../theme/useThemeColors';
 import { AppText } from '../components/ui/AppText';
 import { AppButton } from '../components/ui/AppButton';
+
+const { width } = Dimensions.get('window');
 
 export default function OnboardingScreen({ navigation }: any) {
     const completeOnboarding = useAppStore(state => state.completeOnboarding);
@@ -17,8 +19,11 @@ export default function OnboardingScreen({ navigation }: any) {
     return (
         <View style={[styles.container, { backgroundColor: colors.background }]}>
             <View style={styles.content}>
-                {/* Placeholder for future Nano Banana Illustration */}
-                <View style={styles.illustrationPlaceholder} />
+                <Image
+                    source={require('../../assets/onboarding_hero.png')}
+                    style={styles.image}
+                    resizeMode="contain"
+                />
 
                 <AppText variant="largeTitle" align="center" style={styles.title}>
                     GoStretch
@@ -45,11 +50,9 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    illustrationPlaceholder: {
-        width: 200,
-        height: 200,
-        borderRadius: 100,
-        backgroundColor: theme.colors.border,
+    image: {
+        width: width * 0.8,
+        height: width * 0.8,
         marginBottom: theme.layout.spacing.xxl,
     },
     title: {
