@@ -22,4 +22,5 @@ export interface UserStats {
   lastSessionDate?: string;
   completedSessionsCount: number;
   hasSeenOnboarding: boolean;
+  totalMinutes: number;
 }

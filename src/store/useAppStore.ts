@@ -7,7 +7,7 @@ interface AppState {
     // User Stats
     stats: UserStats;
     completeOnboarding: () => void;
-    incrementStreak: () => void;
+    incrementStreak: (sessionDurationMinutes: number) => void;
     resetStreak: () => void;
 
     // App Theme/Settings (Global toggles if needed, adhering to HIG)
@@ -23,6 +23,7 @@ export const useAppStore = create<AppState>()(
                 longestStreak: 0,
                 completedSessionsCount: 0,
                 hasSeenOnboarding: false,
+                totalMinutes: 0,
             },
             isHapticEnabled: true,
 
@@ -31,7 +32,7 @@ export const useAppStore = create<AppState>()(
                     stats: { ...state.stats, hasSeenOnboarding: true }
                 })),
 
-            incrementStreak: () => {
+            incrementStreak: (sessionDurationMinutes: number) => {
                 const now = new Date();
                 const lastSessionStr = get().stats.lastSessionDate;
 
@@ -63,6 +64,7 @@ export const useAppStore = create<AppState>()(
                         currentStreak: newCurrentStreak,
                         longestStreak: newLongestStreak,
                         completedSessionsCount: state.stats.completedSessionsCount + 1,
+                        totalMinutes: state.stats.totalMinutes + sessionDurationMinutes,
                         lastSessionDate: now.toISOString(),
                     }
                 }));

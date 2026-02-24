@@ -31,7 +31,7 @@ const generateMockHeatmap = () => {
 export default function ProgressScreen() {
     const colors = useThemeColors();
     const insets = useSafeAreaInsets();
-    const { streak, totalSessions, totalMinutes } = useAppStore(state => state.stats);
+    const { currentStreak: streak, completedSessionsCount: totalSessions, totalMinutes } = useAppStore(state => state.stats);
 
     // In a real app this would come from the store tracking actual completion dates
     const heatMapDays = React.useMemo(() => generateMockHeatmap(), []);
