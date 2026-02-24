@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "GoStretch",
-    "slug": "GoStretchiOS",
+    "slug": "gostretch",
     "owner": "ajvargash",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -19,7 +19,7 @@
     },
     "extra": {
       "eas": {
-        "projectId": "8760925c-aba9-45e4-b33c-8483ba7bf625"
+        "projectId": "961819cf-1549-4668-9b63-7c6e3a071286"
       }
     },
     "android": {
