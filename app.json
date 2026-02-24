@@ -1,7 +1,8 @@
 {
   "expo": {
-    "name": "GoStretchiOS",
+    "name": "GoStretch",
     "slug": "GoStretchiOS",
+    "owner": "ajvargash",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -13,7 +14,13 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.ajvargash.gostretch"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "8760925c-aba9-45e4-b33c-8483ba7bf625"
+      }
     },
     "android": {
       "adaptiveIcon": {
