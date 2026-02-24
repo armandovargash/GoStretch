@@ -1,24 +1,36 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { useAppStore } from '../store/useAppStore';
 import { theme } from '../theme';
+import { useThemeColors } from '../theme/useThemeColors';
+import { AppText } from '../components/ui/AppText';
+import { AppButton } from '../components/ui/AppButton';
 
 export default function OnboardingScreen({ navigation }: any) {
     const completeOnboarding = useAppStore(state => state.completeOnboarding);
+    const colors = useThemeColors();
 
     const handleStart = () => {
         completeOnboarding();
-        // Re-render handled by AppNavigator observing state
     };
 
     return (
-        <View style={styles.container}>
-            <Text style={styles.title}>GoStretch</Text>
-            <Text style={styles.subtitle}>Crea el hábito de estirar cada día.</Text>
+        <View style={[styles.container, { backgroundColor: colors.background }]}>
+            <View style={styles.content}>
+                {/* Placeholder for future Nano Banana Illustration */}
+                <View style={styles.illustrationPlaceholder} />
 
-            <TouchableOpacity style={styles.button} onPress={handleStart}>
-                <Text style={styles.buttonText}>Comenzar</Text>
-            </TouchableOpacity>
+                <AppText variant="largeTitle" align="center" style={styles.title}>
+                    GoStretch
+                </AppText>
+                <AppText variant="body" color="secondary" align="center" style={styles.subtitle}>
+                    Crea el hábito de estirar cada día. Sin sudor, sin material, solo alivio inmediato.
+                </AppText>
+            </View>
+
+            <View style={styles.footer}>
+                <AppButton title="Comenzar" size="lg" onPress={handleStart} />
+            </View>
         </View>
     );
 }
@@ -26,34 +38,27 @@ export default function OnboardingScreen({ navigation }: any) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: theme.colors.background,
-        justifyContent: 'center',
-        alignItems: 'center',
         padding: theme.layout.spacing.lg,
     },
+    content: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    illustrationPlaceholder: {
+        width: 200,
+        height: 200,
+        borderRadius: 100,
+        backgroundColor: theme.colors.border,
+        marginBottom: theme.layout.spacing.xxl,
+    },
     title: {
-        fontSize: theme.typography.sizes.xxl,
-        fontWeight: theme.typography.weights.bold,
-        color: theme.colors.textPrimary,
         marginBottom: theme.layout.spacing.sm,
     },
     subtitle: {
-        fontSize: theme.typography.sizes.md,
-        color: theme.colors.textSecondary,
-        marginBottom: theme.layout.spacing.xxl,
-        textAlign: 'center',
+        paddingHorizontal: theme.layout.spacing.md,
     },
-    button: {
-        backgroundColor: theme.colors.accent,
-        paddingVertical: theme.layout.spacing.md,
-        paddingHorizontal: theme.layout.spacing.xl,
-        borderRadius: theme.layout.borderRadius.round,
-        width: '100%',
-        alignItems: 'center',
-    },
-    buttonText: {
-        color: theme.colors.textInverse,
-        fontSize: theme.typography.sizes.md,
-        fontWeight: theme.typography.weights.semibold,
-    },
+    footer: {
+        paddingBottom: theme.layout.spacing.xl,
+    }
 });

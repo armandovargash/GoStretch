@@ -1,27 +1,39 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { useAppStore } from '../store/useAppStore';
 import { theme } from '../theme';
+import { useThemeColors } from '../theme/useThemeColors';
+import { AppText } from '../components/ui/AppText';
+import { AppButton } from '../components/ui/AppButton';
+import { Card } from '../components/ui/Card';
 
 export default function HomeScreen({ navigation }: any) {
     const stats = useAppStore(state => state.stats);
+    const colors = useThemeColors();
 
     const startSession = () => {
         navigation.navigate('SessionFlow');
     };
 
     return (
-        <View style={styles.container}>
-            <Text style={styles.greeting}>Hola, Usuario</Text>
-            <Text style={styles.streak}>Racha actual: {stats.currentStreak} días</Text>
+        <View style={[styles.container, { backgroundColor: colors.background }]}>
+            <AppText variant="title1" style={styles.greeting}>Hola, Usuario</AppText>
+            <AppText variant="subhead" color="secondary" style={styles.streak}>
+                Racha actual: {stats.currentStreak} días
+            </AppText>
 
-            <View style={styles.card}>
-                <Text style={styles.cardTitle}>Recomendación del día</Text>
-                <Text style={styles.cardSubtitle}>Full Body Release (3 min)</Text>
-                <TouchableOpacity style={styles.button} onPress={startSession}>
-                    <Text style={styles.buttonText}>Iniciar</Text>
-                </TouchableOpacity>
-            </View>
+            <Card style={styles.card}>
+                <AppText variant="footnote" color="secondary" weight="semibold" style={styles.cardTitle}>
+                    RECOMENDACIÓN DEL DÍA
+                </AppText>
+                <AppText variant="title2" style={styles.cardSubtitle}>
+                    Full Body Release
+                </AppText>
+                <AppText variant="body" color="secondary" style={styles.cardDesc}>
+                    3 min • 6 estiramientos
+                </AppText>
+                <AppButton title="Iniciar Sesión" onPress={startSession} style={styles.button} />
+            </Card>
         </View>
     );
 }
@@ -29,45 +41,28 @@ export default function HomeScreen({ navigation }: any) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: theme.colors.background,
-        padding: theme.layout.spacing.md,
+        padding: theme.layout.spacing.lg,
     },
     greeting: {
-        fontSize: theme.typography.sizes.xl,
-        fontWeight: theme.typography.weights.bold,
-        color: theme.colors.textPrimary,
-        marginTop: theme.layout.spacing.xl,
+        marginTop: theme.layout.spacing.xxl,
     },
     streak: {
-        fontSize: theme.typography.sizes.md,
-        color: theme.colors.textSecondary,
-        marginBottom: theme.layout.spacing.lg,
+        marginBottom: theme.layout.spacing.xl,
     },
     card: {
-        backgroundColor: theme.colors.cardBackground,
-        padding: theme.layout.spacing.lg,
-        borderRadius: theme.layout.borderRadius.lg,
-        ...theme.layout.shadows.subtle,
+        marginTop: theme.layout.spacing.md,
     },
     cardTitle: {
-        fontSize: theme.typography.sizes.sm,
-        color: theme.colors.textSecondary,
         marginBottom: theme.layout.spacing.xs,
+        letterSpacing: 0.5,
     },
     cardSubtitle: {
-        fontSize: theme.typography.sizes.lg,
-        fontWeight: theme.typography.weights.semibold,
-        color: theme.colors.textPrimary,
+        marginBottom: theme.layout.spacing.xs,
+    },
+    cardDesc: {
         marginBottom: theme.layout.spacing.lg,
     },
     button: {
-        backgroundColor: theme.colors.accent,
-        paddingVertical: theme.layout.spacing.sm,
-        borderRadius: theme.layout.borderRadius.round,
-        alignItems: 'center',
-    },
-    buttonText: {
-        color: theme.colors.textInverse,
-        fontWeight: theme.typography.weights.semibold,
+        marginTop: theme.layout.spacing.sm,
     }
 });
