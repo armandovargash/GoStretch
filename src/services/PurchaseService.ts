@@ -1,76 +1,67 @@
 /**
  * PurchaseService.ts
- * Native iOS In-App Purchase logic using expo-in-app-purchases.
- * Handles subscription checking, purchasing, and restoring purchases.
- * 
- * Product IDs must be registered in App Store Connect once the
- * Apple Developer Account is active.
+ * Native iOS StoreKit subscriptions powered by RevenueCat.
+ *
+ * Before going to production:
+ * 1. Create a RevenueCat account at app.revenuecat.com (free tier available)
+ * 2. Add your App Store app and products (monthly/annual) in RevenueCat dashboard
+ * 3. Replace the placeholder API key below with your actual RevenueCat iOS API key
+ * 4. Create the matching product IDs in App Store Connect
  */
 
-import * as InAppPurchases from 'expo-in-app-purchases';
+import Purchases, { LOG_LEVEL, PurchasesPackage } from 'react-native-purchases';
+import { Platform } from 'react-native';
 
-// These Product IDs must match exactly what you create in App Store Connect
-export const PRODUCT_IDS = {
-    MONTHLY: 'com.ajvargash.gostretch.monthly',
-    ANNUAL: 'com.ajvargash.gostretch.annual',
-} as const;
+// ──────────────────────────────────────────────────────────────────────────────
+// CONFIGURATION — Replace with your real RevenueCat API key before building
+// ──────────────────────────────────────────────────────────────────────────────
+const REVENUECAT_API_KEY_IOS = 'appl_REPLACE_WITH_YOUR_REVENUECAT_IOS_KEY';
 
-export type ProductId = typeof PRODUCT_IDS[keyof typeof PRODUCT_IDS];
+export const ENTITLEMENT_ID = 'pro'; // Create this entitlement in RevenueCat dashboard
 
 /**
- * Connect to the App Store payment queue.
- * Must be called once at app startup (in App.tsx or a top-level hook).
+ * Initialize RevenueCat SDK. Call this once at app startup in App.tsx.
  */
-export async function connectToStore(): Promise<void> {
-    await InAppPurchases.connectAsync();
+export async function configurePurchases(): Promise<void> {
+    if (Platform.OS !== 'ios') return;
+
+    Purchases.setLogLevel(LOG_LEVEL.ERROR);
+    Purchases.configure({ apiKey: REVENUECAT_API_KEY_IOS });
 }
 
 /**
- * Fetch available subscription products from the App Store.
+ * Fetch available subscription packages from RevenueCat.
+ * Returns the current offering's availablePackages array.
  */
-export async function fetchProducts(): Promise<InAppPurchases.IAPItem[]> {
-    const { responseCode, results } = await InAppPurchases.getProductsAsync([
-        PRODUCT_IDS.MONTHLY,
-        PRODUCT_IDS.ANNUAL,
-    ]);
-
-    if (responseCode === InAppPurchases.IAPResponseCode.OK && results) {
-        return results;
+export async function fetchPackages(): Promise<PurchasesPackage[]> {
+    const offerings = await Purchases.getOfferings();
+    if (offerings.current?.availablePackages) {
+        return offerings.current.availablePackages;
     }
-
     return [];
 }
 
 /**
- * Trigger a purchase for the given product.
- * Returns true if the purchase was successful.
+ * Purchase a subscription package.
+ * Returns true if the purchase unlocked the Pro entitlement.
  */
-export async function purchaseSubscription(productId: ProductId): Promise<boolean> {
-    const { responseCode } = await InAppPurchases.purchaseItemAsync(productId);
-    return responseCode === InAppPurchases.IAPResponseCode.OK;
+export async function purchasePackage(pkg: PurchasesPackage): Promise<boolean> {
+    const { customerInfo } = await Purchases.purchasePackage(pkg);
+    return customerInfo.entitlements.active[ENTITLEMENT_ID] !== undefined;
 }
 
 /**
- * Restore previous purchases (required by App Store guidelines).
+ * Check if the current user has an active Pro subscription.
  */
-export async function restorePurchases(): Promise<boolean> {
-    const { responseCode, results } = await InAppPurchases.getPurchaseHistoryAsync();
-
-    if (responseCode === InAppPurchases.IAPResponseCode.OK && results && results.length > 0) {
-        // Check if any of our subscription products exist in history
-        const hasPro = results.some(
-            (p) => p.productId === PRODUCT_IDS.MONTHLY || p.productId === PRODUCT_IDS.ANNUAL
-        );
-        return hasPro;
-    }
-
-    return false;
+export async function checkProStatus(): Promise<boolean> {
+    const customerInfo = await Purchases.getCustomerInfo();
+    return customerInfo.entitlements.active[ENTITLEMENT_ID] !== undefined;
 }
 
 /**
- * Disconnect from the App Store payment queue.
- * Call this when the app goes to background or on unmount.
+ * Restore purchases for the current App Store account.
  */
-export async function disconnectFromStore(): Promise<void> {
-    await InAppPurchases.disconnectAsync();
+export async function restorePurchasesRC(): Promise<boolean> {
+    const customerInfo = await Purchases.restorePurchases();
+    return customerInfo.entitlements.active[ENTITLEMENT_ID] !== undefined;
 }

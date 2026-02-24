@@ -1,7 +1,13 @@
 /**
  * PaywallScreen.tsx
  * Native iOS subscription paywall for GoStretch Pro.
- * Follows Apple HIG for subscription paywalls — clean, high-trust, native feel.
+ * Powered by RevenueCat (react-native-purchases).
+ *
+ * SETUP REQUIRED before first real build:
+ * 1. Create a RevenueCat account → add app → create "pro" entitlement
+ * 2. Add monthly (€4.99) and annual (€36) products in App Store Connect
+ * 3. Link them in RevenueCat dashboard
+ * 4. Replace the API key in PurchaseService.ts
  */
 
 import React, { useState, useEffect } from 'react';
@@ -17,13 +23,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import * as InAppPurchases from 'expo-in-app-purchases';
-import {
-    fetchProducts,
-    purchaseSubscription,
-    restorePurchases,
-    PRODUCT_IDS,
-} from '../services/PurchaseService';
+import { PurchasesPackage } from 'react-native-purchases';
+import { fetchPackages, purchasePackage, restorePurchasesRC } from '../services/PurchaseService';
 
 // Design tokens matching Apple HIG
 const CORAL = '#FF7F7F';
@@ -47,45 +48,51 @@ const PRO_FEATURES = [
 
 export default function PaywallScreen({ onClose, onPurchaseSuccess }: Props) {
     const insets = useSafeAreaInsets();
-    const [products, setProducts] = useState<InAppPurchases.IAPItem[]>([]);
-    const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'annual'>('annual');
+    const [packages, setPackages] = useState<PurchasesPackage[]>([]);
+    const [selectedPkg, setSelectedPkg] = useState<PurchasesPackage | null>(null);
     const [isLoading, setIsLoading] = useState(false);
-    const [isFetchingProducts, setIsFetchingProducts] = useState(true);
+    const [isFetchingPackages, setIsFetchingPackages] = useState(true);
 
     useEffect(() => {
-        loadProducts();
+        loadPackages();
     }, []);
 
-    async function loadProducts() {
-        setIsFetchingProducts(true);
+    async function loadPackages() {
+        setIsFetchingPackages(true);
         try {
-            const result = await fetchProducts();
-            setProducts(result);
+            const pkgs = await fetchPackages();
+            setPackages(pkgs);
+            // Default: select the annual package (best value)
+            const annual = pkgs.find(p => p.packageType === 'ANNUAL');
+            setSelectedPkg(annual ?? pkgs[0] ?? null);
         } catch {
-            // In development / simulator, products won't load — that's expected
+            // In Expo Go / simulator, RevenueCat will return empty — expected
         } finally {
-            setIsFetchingProducts(false);
+            setIsFetchingPackages(false);
         }
     }
 
-    const monthlyProduct = products.find((p) => p.productId === PRODUCT_IDS.MONTHLY);
-    const annualProduct = products.find((p) => p.productId === PRODUCT_IDS.ANNUAL);
-
-    const monthlyPrice = monthlyProduct?.price ?? '€4.99';
-    const annualPrice = annualProduct?.price ?? '€36.00';
-    const annualMonthly = (36 / 12).toFixed(2); // €3.00/mes
+    // Fallback display prices when RevenueCat is not yet configured
+    const getPrice = (type: 'monthly' | 'annual') => {
+        const pkg = packages.find(p =>
+            type === 'annual' ? p.packageType === 'ANNUAL' : p.packageType === 'MONTHLY'
+        );
+        return pkg?.product.priceString ?? (type === 'annual' ? '€36.00' : '€4.99');
+    };
 
     async function handlePurchase() {
+        if (!selectedPkg) {
+            Alert.alert('Error', 'No hay paquetes disponibles en este momento.');
+            return;
+        }
         setIsLoading(true);
         try {
-            const productId =
-                selectedPlan === 'monthly' ? PRODUCT_IDS.MONTHLY : PRODUCT_IDS.ANNUAL;
-            const success = await purchaseSubscription(productId);
-            if (success) {
-                onPurchaseSuccess();
+            const success = await purchasePackage(selectedPkg);
+            if (success) onPurchaseSuccess();
+        } catch (e: any) {
+            if (!e.userCancelled) {
+                Alert.alert('Error', 'No se pudo completar la compra. Inténtalo de nuevo.');
             }
-        } catch {
-            Alert.alert('Error', 'No se pudo completar la compra. Inténtalo de nuevo.');
         } finally {
             setIsLoading(false);
         }
@@ -94,14 +101,11 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess }: Props) {
     async function handleRestore() {
         setIsLoading(true);
         try {
-            const found = await restorePurchases();
+            const found = await restorePurchasesRC();
             if (found) {
                 onPurchaseSuccess();
             } else {
-                Alert.alert(
-                    'Sin compras',
-                    'No encontramos compras previas con esta cuenta de App Store.'
-                );
+                Alert.alert('Sin compras', 'No encontramos compras previas con esta cuenta de App Store.');
             }
         } catch {
             Alert.alert('Error', 'No se pudieron restaurar las compras.');
@@ -110,9 +114,12 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess }: Props) {
         }
     }
 
+    const isAnnualSelected = selectedPkg?.packageType === 'ANNUAL';
+    const annualMonthly = (36 / 12).toFixed(2);
+
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
-            {/* Close */}
+            {/* Close button */}
             <TouchableOpacity style={styles.closeBtn} onPress={onClose} accessibilityLabel="Cerrar">
                 <Ionicons name="close" size={24} color={TEXT_SECONDARY} />
             </TouchableOpacity>
@@ -142,28 +149,36 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess }: Props) {
 
                 {/* Plan Selector */}
                 <View style={styles.plansRow}>
+                    {/* Annual */}
                     <TouchableOpacity
-                        style={[styles.planCard, selectedPlan === 'annual' && styles.planCardSelected]}
-                        onPress={() => setSelectedPlan('annual')}
+                        style={[styles.planCard, isAnnualSelected && styles.planCardSelected]}
+                        onPress={() => {
+                            const annual = packages.find(p => p.packageType === 'ANNUAL');
+                            if (annual) setSelectedPkg(annual);
+                        }}
                         accessibilityRole="radio"
-                        accessibilityState={{ checked: selectedPlan === 'annual' }}
+                        accessibilityState={{ checked: isAnnualSelected }}
                     >
                         <View style={styles.planBadge}>
                             <Text style={styles.planBadgeText}>Más popular</Text>
                         </View>
                         <Text style={styles.planName}>Anual</Text>
-                        <Text style={styles.planPrice}>{annualPrice}</Text>
+                        <Text style={styles.planPrice}>{getPrice('annual')}</Text>
                         <Text style={styles.planSubPrice}>€{annualMonthly}/mes</Text>
                     </TouchableOpacity>
 
+                    {/* Monthly */}
                     <TouchableOpacity
-                        style={[styles.planCard, selectedPlan === 'monthly' && styles.planCardSelected]}
-                        onPress={() => setSelectedPlan('monthly')}
+                        style={[styles.planCard, !isAnnualSelected && styles.planCardSelected]}
+                        onPress={() => {
+                            const monthly = packages.find(p => p.packageType === 'MONTHLY');
+                            if (monthly) setSelectedPkg(monthly);
+                        }}
                         accessibilityRole="radio"
-                        accessibilityState={{ checked: selectedPlan === 'monthly' }}
+                        accessibilityState={{ checked: !isAnnualSelected }}
                     >
                         <Text style={styles.planName}>Mensual</Text>
-                        <Text style={styles.planPrice}>{monthlyPrice}</Text>
+                        <Text style={styles.planPrice}>{getPrice('monthly')}</Text>
                         <Text style={styles.planSubPrice}>por mes</Text>
                     </TouchableOpacity>
                 </View>
@@ -179,16 +194,15 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess }: Props) {
                         <ActivityIndicator color="#FFF" />
                     ) : (
                         <Text style={styles.ctaText}>
-                            Comenzar{' '}
-                            {selectedPlan === 'annual' ? `por ${annualPrice}/año` : `por ${monthlyPrice}/mes`}
+                            Comenzar {isAnnualSelected ? `por ${getPrice('annual')}/año` : `por ${getPrice('monthly')}/mes`}
                         </Text>
                     )}
                 </TouchableOpacity>
 
                 {/* Legal */}
                 <Text style={styles.legal}>
-                    La suscripción se renueva automáticamente. Cancela en cualquier momento desde Ajustes →
-                    Apple ID → Suscripciones.
+                    La suscripción se renueva automáticamente. Cancela en cualquier momento desde
+                    Ajustes → Apple ID → Suscripciones.
                 </Text>
 
                 <TouchableOpacity onPress={handleRestore} disabled={isLoading}>
@@ -200,10 +214,7 @@ export default function PaywallScreen({ onClose, onPurchaseSuccess }: Props) {
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: BG,
-    },
+    container: { flex: 1, backgroundColor: BG },
     closeBtn: {
         position: 'absolute',
         right: 20,
@@ -216,15 +227,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
-    scroll: {
-        paddingHorizontal: 24,
-        paddingTop: 24,
-    },
-    hero: {
-        alignItems: 'center',
-        marginBottom: 28,
-        marginTop: 20,
-    },
+    scroll: { paddingHorizontal: 24, paddingTop: 24 },
+    hero: { alignItems: 'center', marginBottom: 28, marginTop: 20 },
     badge: {
         fontSize: 13,
         fontWeight: '600',
@@ -241,12 +245,7 @@ const styles = StyleSheet.create({
         lineHeight: 36,
         marginBottom: 10,
     },
-    subheadline: {
-        fontSize: 16,
-        color: TEXT_SECONDARY,
-        textAlign: 'center',
-        lineHeight: 22,
-    },
+    subheadline: { fontSize: 16, color: TEXT_SECONDARY, textAlign: 'center', lineHeight: 22 },
     features: {
         backgroundColor: CARD,
         borderRadius: 16,
@@ -258,25 +257,10 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
         elevation: 2,
     },
-    featureRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 14,
-    },
-    featureIcon: {
-        marginRight: 12,
-        width: 24,
-    },
-    featureText: {
-        fontSize: 15,
-        color: TEXT_PRIMARY,
-        flex: 1,
-    },
-    plansRow: {
-        flexDirection: 'row',
-        gap: 12,
-        marginBottom: 24,
-    },
+    featureRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
+    featureIcon: { marginRight: 12, width: 24 },
+    featureText: { fontSize: 15, color: TEXT_PRIMARY, flex: 1 },
+    plansRow: { flexDirection: 'row', gap: 12, marginBottom: 24 },
     planCard: {
         flex: 1,
         backgroundColor: CARD,
@@ -292,9 +276,7 @@ const styles = StyleSheet.create({
         elevation: 2,
         overflow: 'hidden',
     },
-    planCardSelected: {
-        borderColor: CORAL,
-    },
+    planCardSelected: { borderColor: CORAL },
     planBadge: {
         backgroundColor: CORAL,
         borderRadius: 6,
@@ -309,22 +291,9 @@ const styles = StyleSheet.create({
         textTransform: 'uppercase',
         letterSpacing: 0.5,
     },
-    planName: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: TEXT_PRIMARY,
-        marginBottom: 4,
-    },
-    planPrice: {
-        fontSize: 22,
-        fontWeight: '700',
-        color: TEXT_PRIMARY,
-    },
-    planSubPrice: {
-        fontSize: 13,
-        color: TEXT_SECONDARY,
-        marginTop: 2,
-    },
+    planName: { fontSize: 16, fontWeight: '600', color: TEXT_PRIMARY, marginBottom: 4 },
+    planPrice: { fontSize: 22, fontWeight: '700', color: TEXT_PRIMARY },
+    planSubPrice: { fontSize: 13, color: TEXT_SECONDARY, marginTop: 2 },
     ctaBtn: {
         backgroundColor: CORAL,
         borderRadius: 16,
@@ -337,14 +306,8 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
         elevation: 4,
     },
-    ctaBtnDisabled: {
-        opacity: 0.6,
-    },
-    ctaText: {
-        color: '#FFF',
-        fontSize: 17,
-        fontWeight: '700',
-    },
+    ctaBtnDisabled: { opacity: 0.6 },
+    ctaText: { color: '#FFF', fontSize: 17, fontWeight: '700' },
     legal: {
         fontSize: 12,
         color: TEXT_SECONDARY,
@@ -353,10 +316,5 @@ const styles = StyleSheet.create({
         marginBottom: 16,
         paddingHorizontal: 8,
     },
-    restoreText: {
-        fontSize: 14,
-        color: TEXT_SECONDARY,
-        textAlign: 'center',
-        textDecorationLine: 'underline',
-    },
+    restoreText: { fontSize: 14, color: TEXT_SECONDARY, textAlign: 'center', textDecorationLine: 'underline' },
 });
