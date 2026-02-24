@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Modal } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,6 +10,7 @@ import { AppText } from '../components/ui/AppText';
 import { Card } from '../components/ui/Card';
 import { mockSessions } from '../data/mockSessions';
 import { useAppStore } from '../store/useAppStore';
+import PaywallScreen from './PaywallScreen';
 
 const { width } = Dimensions.get('window');
 
@@ -20,7 +21,7 @@ const librarySessions = [
         id: 'desk-worker-001',
         name: 'Desk Worker Reset',
         overview: 'Libera la tensión del cuello y la zona lumbar tras horas frente al ordenador.',
-        stretches: [], // Mocked empty for visual only
+        stretches: [],
         isPremium: true,
         tag: 'Pro'
     },
@@ -38,6 +39,7 @@ export default function LibraryScreen({ navigation }: any) {
     const colors = useThemeColors();
     const insets = useSafeAreaInsets();
     const isHapticEnabled = useAppStore(state => state.isHapticEnabled);
+    const [isPaywallVisible, setIsPaywallVisible] = useState(false);
 
     const handleSessionPress = (session: typeof librarySessions[0]) => {
         if (isHapticEnabled) {
@@ -45,91 +47,108 @@ export default function LibraryScreen({ navigation }: any) {
         }
 
         if (session.isPremium) {
-            // Future: Trigger the native Apple StoreKit Action Sheet here
             if (isHapticEnabled) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-            alert("Muro de Pago: Suscripción Mensual/Anual requerida (Nativo Apple StoreKit)");
+            setIsPaywallVisible(true);
         } else {
             navigation.navigate('SessionFlow', { sessionId: session.id });
         }
     };
 
     return (
-        <ScrollView
-            style={[styles.container, { backgroundColor: colors.background }]}
-            contentContainerStyle={[
-                styles.contentContainer,
-                { paddingTop: insets.top + (80 - insets.top), paddingBottom: insets.bottom + 100 }
-            ]}
-            indicatorStyle={colors.background === '#000000' ? 'white' : 'black'}
-        >
-            <View style={styles.header}>
-                <AppText variant="largeTitle" weight="bold" style={styles.title}>
-                    Biblioteca
-                </AppText>
-                <AppText variant="body" color="secondary">
-                    Tu dosis diaria de movilidad.
-                </AppText>
-            </View>
+        <View style={{ flex: 1, backgroundColor: colors.background }}>
+            <ScrollView
+                style={[styles.container, { backgroundColor: colors.background }]}
+                contentContainerStyle={[
+                    styles.contentContainer,
+                    { paddingTop: insets.top + (80 - insets.top), paddingBottom: insets.bottom + 100 }
+                ]}
+                indicatorStyle={colors.background === '#000000' ? 'white' : 'black'}
+            >
+                <View style={styles.header}>
+                    <AppText variant="largeTitle" weight="bold" style={styles.title}>
+                        Biblioteca
+                    </AppText>
+                    <AppText variant="body" color="secondary">
+                        Tu dosis diaria de movilidad.
+                    </AppText>
+                </View>
 
-            <View style={styles.list}>
-                {librarySessions.map((session, index) => (
-                    <TouchableOpacity
-                        key={session.id}
-                        activeOpacity={0.8}
-                        onPress={() => handleSessionPress(session)}
-                        style={styles.cardWrapper}
-                    >
-                        <Card style={[styles.sessionCard, session.isPremium && styles.premiumCardBorder]}>
-                            <View style={styles.cardHeader}>
-                                <AppText variant="title3" weight="semibold">
-                                    {session.name}
-                                </AppText>
-                                {session.isPremium ? (
-                                    <Ionicons name="lock-closed" size={20} color={colors.accent} />
-                                ) : (
-                                    <View style={[styles.badge, { backgroundColor: colors.accent + '20' }]}>
-                                        <AppText variant="caption1" color="accent" weight="bold">
-                                            {session.tag}
-                                        </AppText>
-                                    </View>
-                                )}
-                            </View>
-
-                            <AppText variant="subhead" color="secondary" style={styles.overview}>
-                                {session.overview}
-                            </AppText>
-
-                            <View style={styles.cardFooter}>
-                                <View style={styles.metaData}>
-                                    <Ionicons name="time-outline" size={16} color={colors.textSecondary} />
-                                    <AppText variant="footnote" color="secondary" style={styles.metaText}>
-                                        {session.isPremium ? '5 min' : '3 min'}
+                <View style={styles.list}>
+                    {librarySessions.map((session) => (
+                        <TouchableOpacity
+                            key={session.id}
+                            activeOpacity={0.8}
+                            onPress={() => handleSessionPress(session)}
+                            style={styles.cardWrapper}
+                        >
+                            <Card style={[styles.sessionCard, session.isPremium && styles.premiumCardBorder]}>
+                                <View style={styles.cardHeader}>
+                                    <AppText variant="title3" weight="semibold">
+                                        {session.name}
                                     </AppText>
-                                </View>
-                            </View>
-
-                            {/* Apple Native Blur Overlay for Premium content */}
-                            {session.isPremium && (
-                                <BlurView
-                                    intensity={colors.background === '#000000' ? 20 : 40}
-                                    tint={colors.background === '#000000' ? "dark" : "light"}
-                                    style={StyleSheet.absoluteFill}
-                                >
-                                    <View style={styles.lockedOverlay}>
-                                        <View style={[styles.lockCircle, { backgroundColor: colors.accent }]}>
-                                            <Ionicons name="lock-closed" size={24} color={colors.textInverse} />
+                                    {session.isPremium ? (
+                                        <Ionicons name="lock-closed" size={20} color={colors.accent} />
+                                    ) : (
+                                        <View style={[styles.badge, { backgroundColor: colors.accent + '20' }]}>
+                                            <AppText variant="caption1" color="accent" weight="bold">
+                                                {session.tag}
+                                            </AppText>
                                         </View>
-                                        <AppText variant="headline" weight="semibold" style={{ marginTop: theme.layout.spacing.sm }}>
-                                            Desbloquear Pro
+                                    )}
+                                </View>
+
+                                <AppText variant="subhead" color="secondary" style={styles.overview}>
+                                    {session.overview}
+                                </AppText>
+
+                                <View style={styles.cardFooter}>
+                                    <View style={styles.metaData}>
+                                        <Ionicons name="time-outline" size={16} color={colors.textSecondary} />
+                                        <AppText variant="footnote" color="secondary" style={styles.metaText}>
+                                            {session.isPremium ? '5 min' : '3 min'}
                                         </AppText>
                                     </View>
-                                </BlurView>
-                            )}
-                        </Card>
-                    </TouchableOpacity>
-                ))}
-            </View>
-        </ScrollView>
+                                </View>
+
+                                {/* Apple Native Blur Overlay for Premium content */}
+                                {session.isPremium && (
+                                    <BlurView
+                                        intensity={colors.background === '#000000' ? 20 : 40}
+                                        tint={colors.background === '#000000' ? "dark" : "light"}
+                                        style={StyleSheet.absoluteFill}
+                                    >
+                                        <View style={styles.lockedOverlay}>
+                                            <View style={[styles.lockCircle, { backgroundColor: colors.accent }]}>
+                                                <Ionicons name="lock-closed" size={24} color={colors.textInverse} />
+                                            </View>
+                                            <AppText variant="headline" weight="semibold" style={{ marginTop: theme.layout.spacing.sm }}>
+                                                Desbloquear Pro
+                                            </AppText>
+                                        </View>
+                                    </BlurView>
+                                )}
+                            </Card>
+                        </TouchableOpacity>
+                    ))}
+                </View>
+            </ScrollView>
+
+            {/* Native iOS Paywall Modal */}
+            <Modal
+                visible={isPaywallVisible}
+                animationType="slide"
+                presentationStyle="pageSheet"
+                onRequestClose={() => setIsPaywallVisible(false)}
+            >
+                <PaywallScreen
+                    onClose={() => setIsPaywallVisible(false)}
+                    onPurchaseSuccess={() => {
+                        setIsPaywallVisible(false);
+                        // TODO: Update global isPro state once Apple Developer account is active
+                    }}
+                />
+            </Modal>
+        </View>
     );
 }
 
@@ -155,7 +174,7 @@ const styles = StyleSheet.create({
     sessionCard: {
         minHeight: 140,
         position: 'relative',
-        overflow: 'hidden', // Extremely important for the BlurView to obey card radius
+        overflow: 'hidden',
     },
     premiumCardBorder: {
         borderWidth: 1,
@@ -191,7 +210,7 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: 'rgba(255,255,255,0.1)', // Subtle tint over the blur
+        backgroundColor: 'rgba(255,255,255,0.1)',
     },
     lockCircle: {
         width: 48,
