@@ -1,0 +1,24 @@
+# GoStretch iOS Workspace Rules
+
+## 1. Zero-to-One Mindset
+Focus on rapid execution, actionable code, and premium aesthetics. Do not over-engineer early prototypes, but ensure the foundation (architecture, folder structure) is scalable.
+
+## 2. No Xcode Mentality
+This project is built using Expo and EAS to bypass local Xcode requirements. Do not suggest or attempt to run native iOS commands (`pod install`, `xcodebuild`) unless explicitly routing through EAS or modifying native modules (which should be avoided if possible).
+
+## 3. iOS Native Standard & HIG
+- The app must strictly adhere to **Apple's Human Interface Guidelines (HIG)**.
+- Use **SF Symbols** exclusively for iconography. Use **SF Pro** for typography.
+- Always support Dark Mode and dynamic type.
+- Prioritize native UI paradigms (standard navigation, action sheets, native haptics).
+
+## 4. Frameworks & Dependencies
+- Use **Apple's native frameworks** (via Expo modules) whenever possible (e.g., HealthKit, StoreKit, Apple Auth).
+- **NO external paid SDKs** or subscriptions. We rely on free, open-source, or first-party tools to maximize the chance of getting featured by Apple.
+
+## 5. Communication
+
+## 4. UI/UX Standard
+- Interfaces must feel "Native". 
+- Use smooth micro-animations (e.g., Reanimated).
+- Prefer dark modes or high-contrast, clean minimalist palettes.
