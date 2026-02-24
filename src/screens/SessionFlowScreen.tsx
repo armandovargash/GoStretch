@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, TouchableOpacity, SafeAreaView, Dimensions } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, SafeAreaView, Dimensions, Image } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../store/useAppStore';
@@ -10,13 +10,14 @@ import { mockSessions } from '../data/mockSessions';
 
 const { width } = Dimensions.get('window');
 
-export default function SessionFlowScreen({ navigation }: any) {
+export default function SessionFlowScreen({ route, navigation }: any) {
     const colors = useThemeColors();
     const incrementStreak = useAppStore(state => state.incrementStreak);
     const isHapticEnabled = useAppStore(state => state.isHapticEnabled);
 
-    // Hardcoded for MVP based on mock data
-    const session = mockSessions[0];
+    // Resolve session dynamically via navigation params (no hardcoding)
+    const { sessionId } = route.params || {};
+    const session = mockSessions.find(s => s.id === sessionId) || mockSessions[0];
     const stretches = session.stretches;
 
     // State
@@ -106,13 +107,27 @@ export default function SessionFlowScreen({ navigation }: any) {
 
             {/* Main Content */}
             <View style={styles.content}>
-                {/* Placeholder for Nano Banana Generative Illustration */}
-                <View style={[styles.illustrationPlaceholder, { backgroundColor: colors.cardBackground, shadowColor: colors.overlay }]}>
-                    <AppText variant="caption1" color="secondary" align="center">
-                        [Illustration Placeholder]
-                        {'\n'}Prompt: Nano Banana
-                    </AppText>
-                </View>
+                {/* Dynamic Illustration or Fallback */}
+                {['back_extension', 'hamstring_stretch', 'quad_stretch'].includes(currentStretch.animationName) ? (
+                    <Image
+                        source={
+                            currentStretch.animationName === 'back_extension'
+                                ? require('../../assets/illustrations/back_extension.png')
+                                : currentStretch.animationName === 'hamstring_stretch'
+                                    ? require('../../assets/illustrations/hamstring_stretch.png')
+                                    : require('../../assets/illustrations/quad_stretch.png')
+                        }
+                        style={styles.illustrationImage}
+                        resizeMode="contain"
+                    />
+                ) : (
+                    <View style={[styles.illustrationPlaceholder, { backgroundColor: colors.cardBackground, shadowColor: colors.overlay }]}>
+                        <AppText variant="caption1" color="secondary" align="center">
+                            [Falta Imagen]
+                            {'\n'}Prompt: Nano Banana
+                        </AppText>
+                    </View>
+                )}
 
                 <View style={styles.textContainer}>
                     <AppText variant="title1" align="center" style={styles.stretchName}>
@@ -188,6 +203,11 @@ const styles = StyleSheet.create({
         marginBottom: theme.layout.spacing.xxl,
         ...theme.layout.shadows.subtle,
         elevation: 4,
+    },
+    illustrationImage: {
+        width: width * 0.75,
+        height: width * 0.75,
+        marginBottom: theme.layout.spacing.xxl,
     },
     textContainer: {
         alignItems: 'center',

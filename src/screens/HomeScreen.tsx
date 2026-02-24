@@ -12,7 +12,8 @@ export default function HomeScreen({ navigation }: any) {
     const colors = useThemeColors();
 
     const startSession = () => {
-        navigation.navigate('SessionFlow');
+        // Pass the actual session ID instead of relying on hardcoded indices
+        navigation.navigate('SessionFlow', { sessionId: 'full-body-001' });
     };
 
     return (
